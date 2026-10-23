@@ -116,10 +116,83 @@ function renderIdentity(input) {
   return root;
 }
 
+// ---------- 14단계: 업무 앱 접근 요청 결과 표시 (renderDecision) ----------
+
+// allow는 정책상 접근 허용일 뿐 실제 앱 접속 성공을 보장하지 않는다.
+const DECISION_INFO = {
+  allow: { label: '접근 허용', className: 'decision decision-allow', note: '정책상 접근이 허용되었습니다. 실제 앱 접속 성공을 보장하지 않습니다.' },
+  deny: { label: '접근 거부', className: 'decision decision-deny', note: '정책에 따라 접근이 거부되었습니다.' },
+  challenge: { label: '추가 확인 필요', className: 'decision decision-challenge', note: '허용되지 않음: 추가 인증 또는 확인이 필요합니다. 이 앱이 확인 절차를 대신 수행하지 않습니다.' },
+  unknown: { label: '판정 확인 불가', className: 'decision decision-unknown', note: '허용되지 않음: 서버가 판정을 확인하지 못했습니다. 접근 허용으로 간주하지 마세요.' },
+};
+
+function formatCheckedAt(value) {
+  if (typeof value !== 'string' || !value) return '판정 시각 정보 없음';
+  const time = new Date(value);
+  return Number.isNaN(time.getTime()) ? `확인 불가(${value})` : `${time.toLocaleString('ko-KR')} (${value})`;
+}
+
+function decisionResult(data, appId) {
+  const box = createNode('div', 'decision-result');
+  const decision = data && data.decision;
+  const known = typeof decision === 'string' && Object.hasOwn(DECISION_INFO, decision);
+  // 목록에 없는 값은 unknown과 똑같이 확인 불가로 처리한다(허용으로 보이지 않게).
+  const info = known ? DECISION_INFO[decision] : DECISION_INFO.unknown;
+  const code = known ? decision : 'unknown';
+  const heading = createNode('p', info.className);
+  heading.append(createNode('strong', null, `${info.label}(${code})`));
+  heading.append(document.createTextNode(` · 앱 ${(data && data.appId) || appId || 'ID 없음'}`));
+  box.append(heading, createNode('p', null, info.note));
+  if (!known) box.append(createNode('p', 'muted', `받은 판정 값: ${decision == null ? '없음' : String(decision)}`));
+  const list = createNode('dl', 'kv');
+  describedRow(list, '판정 이유', data && typeof data.reason === 'string' && data.reason ? data.reason : '판정 이유 정보 없음');
+  describedRow(list, '판정 시각', formatCheckedAt(data && data.checkedAt));
+  box.append(list);
+  return box;
+}
+
+// 요청 실패는 서버의 판정이 아니다. 거부·허용 어느 쪽으로도 읽히지 않게 한다.
+function decisionFailure(error, appId) {
+  const box = createNode('div', 'decision-result');
+  const heading = createNode('p', 'decision decision-failed');
+  heading.setAttribute('role', 'alert');
+  heading.append(createNode('strong', null, '요청 실패'));
+  heading.append(document.createTextNode(` · 앱 ${appId || 'ID 없음'}`));
+  const message = error && typeof error.message === 'string' && error.message ? error.message : '서버 메시지 없음';
+  box.append(
+    heading,
+    createNode('p', null, `요청 실패: ${message}`),
+    createNode('p', 'muted', '허용되지 않음: 판정을 받지 못했습니다. 이것은 접근 거부 판정이 아닙니다. 필요하면 앱을 골라 다시 요청하세요.'),
+  );
+  return box;
+}
+
+// 입력: { status, mode, data?, error?, appId }. 호출마다 새 요소를 반환한다.
+function renderDecision(input) {
+  const { status, mode, data, error, appId } = input || {};
+  const root = createNode('div', 'student-decision');
+  if (status === 'idle') {
+    root.append(createNode('p', 'muted', '앱을 골라 접속을 요청하세요.'));
+  } else if (status === 'loading') {
+    const box = createNode('p', 'state state-loading', `판정 확인 중… (앱 ${appId || 'ID 없음'})`);
+    box.setAttribute('role', 'status');
+    root.append(box);
+  } else if (status === 'ok') {
+    root.append(decisionResult(data, appId));
+  } else if (status === 'error') {
+    root.append(decisionFailure(error, appId));
+  } else {
+    root.append(createNode('p', 'decision decision-unknown', '확인 불가(unknown): 알 수 없는 요청 상태입니다. 접근 허용으로 간주하지 마세요.'));
+  }
+  const note = modeNote(mode);
+  if (note) root.append(note);
+  return root;
+}
+
 export function createStudentView() {
   return {
     renderIdentity,
-    renderDecision() { return '학생 구현 대기: 서버의 판정과 이유를 연결하세요.'; },
+    renderDecision,
     renderEvents() { return '학생 구현 대기: 본인 접속·XDR 기록을 연결하세요.'; },
     renderStatus() { return '학생 구현 대기: 기기·세션·알림과 연결 점검 상태를 구분하세요.'; },
     renderVulnerabilities() { return '학생 구현 대기: 정확한 설치 버전·OSV 출처·조회 시각·부분 결과·조회 실패를 구분하세요.'; },
