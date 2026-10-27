@@ -34,15 +34,17 @@
 ```
 
 자세한 구성도(Mermaid·표), 실행 절차, 장애 안내, 확인 기록은 [on-client/docs/STUDENT_RUNBOOK.md](on-client/docs/STUDENT_RUNBOOK.md)에 있습니다.
+새 환경 재현 결과, 버전·커밋 기록, 데이터 보존 계획은 [on-client/docs/STUDENT_RELEASE_RECORD.md](on-client/docs/STUDENT_RELEASE_RECORD.md)에 있습니다.
 
 ## 지원 환경과 버전
 
 | 항목 | 값 |
 |---|---|
 | 앱 버전 | `alekov-client-starter` 0.2.14 (`on-client/package.json`) |
+| 학생 버전 | 0.2.14-student.1 (검증 중 — 실제 연결·집행 등 미완료 항목 있음) |
 | Node.js | 22~24, 수업 기준 24.19.0 (`engines.node`) |
 | npm 의존성 | 없음(그래서 `package-lock.json` 없음) |
-| 운영체제 | Windows + PowerShell (실행 도구 `on-client/tools/start-alekov.ps1`). macOS·Linux는 확인하지 않음 |
+| 운영체제 | Windows + PowerShell (실행 도구 `on-client/tools/start-alekov.ps1`). macOS·Linux는 지원 환경 아님(Linux에서 `node src/server.mjs` 연결 없음 실행만 확인) |
 | 실행 주소 | `http://127.0.0.1:5189/` (이 PC에서만 접속) |
 
 ## 빠른 실행
